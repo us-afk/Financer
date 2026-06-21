@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: finance-tracker
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATA_DIR
+        value: /var/data         # points to the persistent disk below
+      - key: SECRET_KEY
+        generateValue: true      # auto-generated JWT secret
+      - key: GROQ_API_KEY
+        sync: false              # fill this in the Render dashboard
+    disk:
+      name: finance-db
+      mountPath: /var/data       # this folder survives redeploys & restarts
+      sizeGB: 1                  # free tier allows 1 GB

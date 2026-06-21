@@ -1,0 +1,58 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ===== Virtual Environment =====
+venv/
+env/
+.env/
+.venv/
+ENV/
+
+# ===== Environment Variables =====
+.env
+*.env
+.env.local
+.env.production
+
+# ===== Database =====
+# SQLite DB is stored on a persistent disk (set DATA_DIR env var on your host).
+# Do NOT commit .db files — they contain user data.
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== VS Code =====
+.vscode/
+*.code-workspace
+
+# ===== PyCharm =====
+.idea/
+
+# ===== Pytest =====
+.pytest_cache/
+htmlcov/
+.coverage
+
+# ===== Misc =====
+*.bak
+*.swp
+*.tmp

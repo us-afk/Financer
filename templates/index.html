@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0f">
+  <title>Finance</title>
+  <link rel="icon" type="image/png" href="/static/img/app-icon.png">
+  <link rel="apple-touch-icon" href="/static/img/app-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  <link rel="stylesheet" href="/static/css/features.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/static/script.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <h1 class="logo"><img src="/static/img/app-icon.png" alt="logo" class="logo-img" onerror="this.style.display='none'">Finance</h1>
+      </div>
+      <nav class="nav-center">
+        <button onclick="switchTab('dashboard')" class="nav-tab" data-tab="dashboard">Dashboard</button>
+        <button onclick="switchTab('transactions')" class="nav-tab" data-tab="transactions">Transactions</button>
+        <button onclick="switchTab('analytics')" class="nav-tab" data-tab="analytics">Analytics</button>
+        <button onclick="switchTab('recurring')" class="nav-tab" data-tab="recurring">🔁 Recurring</button>
+        <button onclick="switchTab('profile')" class="nav-tab" data-tab="profile">Profile</button>
+      </nav>
+      <div class="nav-right">
+        <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">
+          <span class="theme-icon">🌙</span>
+        </button>
+        <button id="logoutBtn" class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="content">
+      <!-- Dashboard -->
+      <section id="dashboard" class="tab-content">
+        <h1>Dashboard</h1>
+        
+        <div class="dashboard-layout">
+          <!-- Add Transaction Form -->
+          <div class="dashboard-form">
+            <div class="form-header-row">
+              <h2>Add Transaction</h2>
+              <div class="form-header-actions">
+                <button class="nl-toggle-btn" type="button" onclick="toggleNLPanel()" title="Type in plain English">⚡ Smart Entry</button>
+                <button class="split-toggle-btn" type="button" onclick="openSplitModal()" title="Split one bill across categories">✂️ Split</button>
+              </div>
+            </div>
+            <!-- Natural Language Entry Panel -->
+            <div id="nlPanel" class="nl-panel" style="display:none">
+              <div class="nl-label">Type naturally: <em>&quot;spent 450 on lunch at Zomato yesterday&quot;</em></div>
+              <div class="nl-input-row">
+                <input type="text" id="nlInput" class="nl-input" placeholder="Describe your expense..." onkeydown="if(event.key===&apos;Enter&apos;)parseNLTransaction()">
+                <button id="nlParseBtn" type="button" class="nl-parse-btn" onclick="parseNLTransaction()">⚡ Fill Form</button>
+              </div>
+            </div>
+            <form id="dashboardTransactionForm" onsubmit="addTransaction(event)">
+              <div class="form-row suggest-row">
+                <input type="text" id="dashCategory" placeholder="Category" required>
+                <div class="suggest-wrapper">
+                  <input type="text" id="dashDesc" placeholder="Description (Optional)">
+                  <button type="button" id="suggestCategoryBtn" class="suggest-btn" onclick="suggestCategory()" style="display:none">✨ Suggest</button>
+                </div>
+              </div>
+              <div class="form-row">
+                <input type="number" id="dashAmount" placeholder="Amount" step="0.01" required>
+                <input type="date" id="dashDate" placeholder="Date (Optional)">
+              </div>
+              <button type="submit" class="action">Add Transaction</button>
+            </form>
+          </div>
+
+          <!-- Statistics -->
+          <div class="stats-container">
+            <h2>Statistics</h2>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h3>Total Sum</h3>
+                <p id="statBalance">₹0</p>
+              </div>
+              <div class="stat-card">
+                <h3>Monthly Limit</h3>
+                <p id="statLimit">₹0</p>
+              </div>
+              <div class="stat-card">
+                <h3>Spent</h3>
+                <p id="statSpent">₹0</p>
+              </div>
+              <div class="stat-card">
+                <h3>Remaining</h3>
+                <p id="statRemaining">₹0</p>
+              </div>
+              <div class="stat-card">
+                <h3>Days Left</h3>
+                <p id="statDays">0</p>
+              </div>
+              <div class="stat-card">
+                <h3>Daily Budget</h3>
+                <p id="statDaily">₹0</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Spending Section -->
+        <div class="category-spending-section">
+          <h2>Category Spending</h2>
+          <div id="categorySpendingGrid" class="category-grid">
+            <p class="empty-state">No transactions yet. Add some to see category breakdown.</p>
+          </div>
+        </div>
+
+        <!-- AI Insights -->
+        <div class="ai-insights-section">
+          <button id="analyseBtn" class="action ai-analyse-btn" onclick="analyseSpending()">🤖 Analyse My Spending</button>
+          <span id="anomalyCounter" class="anomaly-counter" style="display:none">0</span>
+          <div id="insightsPanel" class="insights-panel" style="display:none"></div>
+        </div>
+
+        <!-- Budget Predictor -->
+        <div class="smart-section">
+          <h2 class="smart-section-title">📈 Budget Predictor</h2>
+          <div id="budgetPredictorPanel" class="smart-panel"></div>
+        </div>
+      </section>
+
+      <!-- Transactions -->
+      <section id="transactions" class="tab-content" style="display: none;">
+        <div class="transactions-tab-header">
+          <h1>Transaction History</h1>
+          <div class="transactions-header-actions">
+            <input type="text" id="tagFilterInput" class="tag-filter-input" placeholder="🏷 Filter by tag..." oninput="renderTransactions()">
+            <button class="secondary-btn export-btn" onclick="exportCSV()">📥 Export CSV</button>
+          </div>
+        </div>
+        <div>
+          <label>View:</label>
+          <div id="transactionFilterSlider" class="filter-slider">
+            <!-- Dynamically populated with filter items -->
+          </div>
+          <p id="transactionSummary"></p>
+        </div>
+        <div class="transactions-layout">
+          <div class="transactions-list">
+            <div id="transactionsList"></div>
+          </div>
+          <div class="transactions-sidebar">
+            <div class="chart-container">
+              <canvas id="spendingChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Analytics -->
+      <section id="analytics" class="tab-content" style="display: none;">
+        <h1>Analytics</h1>
+
+        <p id="analyticsEmpty" class="empty-state" style="display:none">No transactions yet. Add some to see analytics.</p>
+
+        <div id="analyticsContent">
+          <!-- Summary Cards -->
+          <div id="analyticsSummaryCards" class="analytics-summary-cards"></div>
+
+          <!-- Monthly Bar Chart -->
+          <div class="analytics-chart-card">
+            <h2>Monthly Spending (Last 6 Months)</h2>
+            <div class="analytics-chart-wrapper">
+              <canvas id="monthlyBarChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Category Trend Lines -->
+          <div class="analytics-chart-card" id="categoryTrendCard">
+            <h2>Category Trends</h2>
+            <div class="analytics-chart-wrapper">
+              <canvas id="categoryTrendChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Monthly Report Card -->
+          <div class="analytics-chart-card">
+            <h2>📊 Monthly Report Card</h2>
+            <div id="reportCardPanel" class="smart-panel"></div>
+          </div>
+
+          <!-- Spending Heatmap Calendar -->
+          <div class="analytics-chart-card heatmap-card">
+            <div class="heatmap-header">
+              <h2>🔥 Spending Heatmap</h2>
+              <span class="heatmap-subtitle">GitHub-style — darker = more spent</span>
+            </div>
+            <div id="heatmapGrid" class="heatmap-grid"></div>
+            <div class="heatmap-legend-row">
+              <span class="heatmap-legend-label">Less</span>
+              <div class="heatmap-legend">
+                <div class="heatmap-cell" data-level="0"></div>
+                <div class="heatmap-cell" data-level="1"></div>
+                <div class="heatmap-cell" data-level="2"></div>
+                <div class="heatmap-cell" data-level="3"></div>
+                <div class="heatmap-cell" data-level="4"></div>
+              </div>
+              <span class="heatmap-legend-label">More</span>
+            </div>
+            <div id="heatmapStats" class="heatmap-stats-row"></div>
+          </div>
+          <div id="heatmapTooltip" class="heatmap-tooltip" style="display:none"></div>
+
+          <!-- Savings Goal Tracker -->
+          <div class="analytics-chart-card">
+            <h2>🎯 Savings Goals</h2>
+            <div id="goalsPanel" class="smart-panel"></div>
+            <div class="goal-add-form">
+              <input type="text" id="goalName" class="goal-input" placeholder="Goal name (e.g. Emergency Fund)">
+              <input type="number" id="goalTarget" class="goal-input goal-input-amount" placeholder="Target ₹" min="1">
+              <button class="action goal-create-btn" onclick="addGoal()">+ Add Goal</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Profile (formerly Settings) -->
+      <section id="profile" class="tab-content" style="display: none;">
+        <h1>Profile Settings</h1>
+        
+        <div class="profile-sections">
+          <!-- Manual Setup Section -->
+          <div class="profile-card">
+            <h2>Manual Setup</h2>
+            <form id="manualSetupForm" onsubmit="saveManualSetup(event)">
+              <div class="balance-control">
+                <label>Total Balance</label>
+                <input type="number" id="manualBalance" placeholder="Enter balance" step="0.01">
+                <div class="button-group">
+                  <button type="button" class="secondary-btn" onclick="resetBalance()">Reset Value</button>
+                  <button type="button" class="secondary-btn" onclick="addToCurrent()">Add to Current</button>
+                </div>
+              </div>
+
+              <label>Monthly Limit</label>
+              <input type="number" id="manualLimit" placeholder="Monthly spending limit" step="0.01">
+              
+              <label>Start Date</label>
+              <input type="date" id="manualStartDate">
+              
+              <label>End Date</label>
+              <input type="date" id="manualEndDate">
+              
+              <div style="display:flex;gap:0.5rem;margin-top:0.25rem;">
+                <button type="submit" class="action" style="flex:1">Save Manual Setup</button>
+                <button type="button" onclick="clearManualPeriod()" class="secondary-btn" style="flex:1;color:var(--warning);border-color:var(--warning);">🗑️ Clear Period</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Monthly Division Section -->
+          <div class="profile-card">
+            <h2>Monthly Division (Optional)</h2>
+            <p class="section-description">Divide your budget into spending categories</p>
+            <form id="monthlyDivisionForm" onsubmit="saveMonthlyDivision(event)">
+              <div id="divisionRows">
+                <div class="division-row">
+                  <input type="text" placeholder="Where to Spend" class="division-category">
+                  <input type="number" placeholder="Amount" step="0.01" class="division-amount">
+                  <button type="button" class="remove-row-btn" onclick="removeDivisionRow(this)">✕</button>
+                </div>
+              </div>
+              <button type="button" class="secondary-btn" onclick="addDivisionRow()">+ Add More</button>
+              <button type="submit" class="action">Save Division</button>
+            </form>
+            <div id="savedDivisions" class="saved-divisions"></div>
+          </div>
+
+          <!-- Automatic Setup Section -->
+          <div class="profile-card">
+            <h2>Automatic Setup</h2>
+            <p class="section-description">Automatically calculate monthly period based on income date</p>
+            <form id="autoSetupForm" onsubmit="saveAutoSetup(event)">
+              <label>Monthly Income</label>
+              <input type="number" id="autoIncome" placeholder="Enter monthly income" step="0.01" required>
+              
+              <label>Monthly Spending Limit</label>
+              <input type="number" id="autoLimit" placeholder="Enter monthly spending limit (optional)" step="0.01">
+              
+              <label>Start From Date</label>
+              <input type="date" id="autoStartDateInput" required>
+              
+              <label>Date of Receiving Money</label>
+              <input type="date" id="autoReceiveDate">
+              
+              <div>
+                <input type="checkbox" id="enableRollover">
+                <label for="enableRollover">Enable Rollover (unused balance carries forward)</label>
+              </div>
+              
+              <div>
+                <input type="checkbox" id="enableAutoRenewal" checked>
+                <label for="enableAutoRenewal">Enable Auto-Renewal (recurring monthly)</label>
+              </div>
+              
+              <div class="auto-info" id="autoInfo" style="display: none;">
+                <p><strong>Calculated Period:</strong></p>
+                <p>Start: <span id="autoStartDate"></span></p>
+                <p>End: <span id="autoEndDate"></span></p>
+              </div>
+              
+              <button type="submit" class="action">Setup Automatically</button>
+            </form>
+          </div>
+
+          <!-- Recurring Status Display -->
+          <div class="recurring-status-card profile-card">
+            <h2>Recurring Status</h2>
+            <div id="currentPeriodStatus"></div>
+            <div id="scheduledRecurringStatus"></div>
+          </div>
+
+          <!-- Clear Data -->
+          <div class="profile-card">
+            <h2>⚠️ Clear Data</h2>
+            <p class="section-description">Reset specific data if you entered incorrect information. This cannot be undone.</p>
+            <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem;">
+              <button onclick="clearBudgetSettings()" class="secondary-btn" style="text-align:left; color:var(--warning); border-color:var(--warning);">
+                🗓️ Clear Budget Period &amp; Limits
+              </button>
+              <button onclick="clearRecurringSetup()" class="secondary-btn" style="text-align:left; color:var(--warning); border-color:var(--warning);">
+                🔁 Clear Automatic Setup
+              </button>
+              <button onclick="clearAllTransactions()" class="secondary-btn" style="text-align:left; color:var(--danger); border-color:var(--danger);">
+                🗑️ Clear All Transactions
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <p id="profileMessage" class="msg"></p>
+      </section>
+      <!-- Recurring Transactions Tab -->
+      <section id="recurring" class="tab-content" style="display: none;">
+        <h1>🔁 Recurring Transactions</h1>
+
+        <!-- Upcoming Payments -->
+        <div class="recurring-section-card">
+          <h2>📅 Upcoming Payments</h2>
+          <div id="upcomingRecurring" class="upcoming-list"></div>
+        </div>
+
+        <!-- Add Recurring Form -->
+        <div class="recurring-section-card">
+          <h2>➕ Add Recurring Transaction</h2>
+          <form id="recurringForm" onsubmit="saveRecurringTransaction(event)">
+            <div class="recurring-form-grid">
+              <div class="form-group">
+                <label>Description *</label>
+                <input type="text" id="rtDesc" placeholder="e.g. Netflix subscription" required>
+              </div>
+              <div class="form-group">
+                <label>Category *</label>
+                <input type="text" id="rtCategory" placeholder="ENTERTAINMENT" required>
+              </div>
+              <div class="form-group">
+                <label>Amount (₹) *</label>
+                <input type="number" id="rtAmount" placeholder="199" step="0.01" min="0.01" required>
+              </div>
+              <div class="form-group">
+                <label>Day of Month (1-28) *</label>
+                <input type="number" id="rtDay" placeholder="1" min="1" max="28" required>
+              </div>
+              <div class="form-group">
+                <label>Tags (optional)</label>
+                <input type="text" id="rtTags" placeholder="#subscription #essential">
+              </div>
+            </div>
+            <button type="submit" class="action">Add Recurring</button>
+          </form>
+        </div>
+
+        <!-- Existing Recurring List -->
+        <div class="recurring-section-card">
+          <div class="recurring-list-header">
+            <h2>All Recurring Transactions</h2>
+            <button class="secondary-btn" onclick="applyDueRecurring()">⚡ Apply Due Now</button>
+          </div>
+          <div id="recurringList" class="recurring-list"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Split Transaction Modal -->
+  <div id="splitModal" class="modal" style="display:none">
+    <div class="modal-content modal-wide">
+      <div class="modal-header">
+        <h2>✂️ Split Transaction</h2>
+        <span class="close" onclick="closeSplitModal()">&times;</span>
+      </div>
+      <div class="split-meta-row">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="splitDate">
+        </div>
+        <div class="form-group">
+          <label>Overall Description</label>
+          <input type="text" id="splitDesc" placeholder="e.g. Weekend grocery run">
+        </div>
+        <div class="form-group">
+          <label>Tags</label>
+          <input type="text" id="splitTags" placeholder="#grocery #household">
+        </div>
+      </div>
+      <div id="splitRowsContainer" class="split-rows-container"></div>
+      <button class="secondary-btn split-add-row-btn" type="button" onclick="addSplitRow()">+ Add Category</button>
+      <div class="split-total-bar">
+        Total: <strong id="splitTotalDisplay">₹0.00</strong>
+      </div>
+      <div class="modal-footer">
+        <button class="action" onclick="submitSplit()">✅ Create Split Transactions</button>
+        <button class="secondary-btn" onclick="closeSplitModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tags & Notes Modal -->
+  <div id="tagsModal" class="modal" style="display:none">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🏷 Tags & Notes</h2>
+        <span class="close" onclick="closeTagsModal()">&times;</span>
+      </div>
+      <input type="hidden" id="tagsTransactionId">
+      <div class="form-group">
+        <label>Tags</label>
+        <input type="text" id="tagsInput" placeholder="#emi #essential #impulse">
+        <div id="tagSuggestions" class="tag-suggestions-row"></div>
+      </div>
+      <div class="form-group tags-notes-form-group">
+        <label>Notes</label>
+        <textarea id="notesInput" rows="3" placeholder="Add any notes about this transaction..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="action" onclick="saveTagsAndNotes()">💾 Save</button>
+        <button class="secondary-btn" onclick="closeTagsModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Transaction Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeEditModal()">&times;</span>
+      <h2>Edit Transaction</h2>
+      <form id="editTransactionForm" onsubmit="updateTransaction(event)">
+        <input type="hidden" id="editId">
+        <input type="text" id="editCategory" placeholder="Category" required>
+        <input type="number" id="editAmount" placeholder="Amount" step="0.01" required>
+        <input type="date" id="editDate" required>
+        <input type="text" id="editDesc" placeholder="Description">
+        <button type="submit" class="action">Update Transaction</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <footer>
+    Uddipt Shankar | 
+    <a href="https://github.com/us005-bit" target="_blank">GitHub</a> | 
+    <a href="https://www.linkedin.com/in/uddipt-shankar/" target="_blank">LinkedIn</a>
+  </footer>
+
+  <script src="/static/js/api.js" defer></script>
+  <script src="/static/js/ai.js" defer></script>
+  <script src="/static/js/export.js" defer></script>
+  <script src="/static/js/analytics.js" defer></script>
+  <script src="/static/js/smart.js" defer></script>
+  <script src="/static/js/heatmap.js" defer></script>
+  <script src="/static/js/recurring.js" defer></script>
+  <script src="/static/js/tags-split.js" defer></script>
+  <!-- Mobile Bottom Navigation -->
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="bottom-nav-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span class="btn-icon">📊</span>Dashboard
+      </button>
+      <button class="bottom-nav-btn" data-tab="transactions" onclick="switchTab('transactions')">
+        <span class="btn-icon">💳</span>Transactions
+      </button>
+      <button class="bottom-nav-btn" data-tab="analytics" onclick="switchTab('analytics')">
+        <span class="btn-icon">📈</span>Analytics
+      </button>
+      <button class="bottom-nav-btn" data-tab="recurring" onclick="switchTab('recurring')">
+        <span class="btn-icon">🔁</span>Recurring
+      </button>
+      <button class="bottom-nav-btn" data-tab="profile" onclick="switchTab('profile')">
+        <span class="btn-icon">👤</span>Profile
+      </button>
+    </div>
+  </nav>
+
+</body>
+</html>
