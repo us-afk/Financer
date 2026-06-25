@@ -9,7 +9,7 @@
 // 1. BUDGET PREDICTOR
 // ─────────────────────────────────────────────────────────────
 
-let forecastSparklineChart = null; // track instance to avoid infinite loop on re-render
+
 
 function runBudgetPredictor() {
   const panel = document.getElementById('budgetPredictorPanel');
@@ -66,9 +66,6 @@ function runBudgetPredictor() {
   const spentPct     = Math.min(100, Math.round((totalSpent / limit) * 100));
   const barColor     = spentPct > 85 ? 'var(--danger)' : spentPct > 65 ? 'var(--warning)' : 'var(--success)';
 
-  // Build forecast sparkline data (last 14 days of spend + 14-day projection)
-  const sparkData = buildSparklineData(periodTx, start, today, dailyRate, 14);
-
   panel.innerHTML = `
     <div class="predictor-grid">
       <div class="predictor-stat">
@@ -103,89 +100,9 @@ function runBudgetPredictor() {
         <span style="color:var(--text-secondary);font-size:0.75rem">Projected end: ${projectedPct}% of budget</span>
       </div>
     </div>
-    <canvas id="forecastSparkline" height="70"></canvas>
   `;
 
-  // Draw sparkline after DOM update
-  requestAnimationFrame(() => renderSparkline('forecastSparkline', sparkData));
-}
 
-function buildSparklineData(txList, start, today, dailyRate, lookback) {
-  const actuals = {};
-  txList.forEach(t => {
-    const k = t.date.slice(0, 10);
-    actuals[k] = (actuals[k] || 0) + t.amount;
-  });
-
-  const labels = [], actual = [], forecast = [];
-  for (let i = lookback - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    if (d < start) continue;
-    const k = d.toISOString().slice(0, 10);
-    labels.push(d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }));
-    actual.push(actuals[k] || 0);
-    forecast.push(null);
-  }
-  // Add 7 forecast days
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + i);
-    labels.push(d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }));
-    actual.push(null);
-    forecast.push(+(dailyRate.toFixed(0)));
-  }
-  return { labels, actual, forecast };
-}
-
-function renderSparkline(canvasId, { labels, actual, forecast }) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas || !window.Chart) return;
-
-  // Destroy existing chart instance to prevent Chart.js infinite loop on re-render
-  if (forecastSparklineChart) {
-    try { forecastSparklineChart.destroy(); } catch (e) { }
-    forecastSparklineChart = null;
-  }
-
-  const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
-  forecastSparklineChart = new Chart(canvas.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Spent',
-          data: actual,
-          backgroundColor: 'var(--accent-primary)99',
-          borderColor: 'var(--accent-primary)',
-          borderWidth: 1,
-          borderRadius: 3,
-        },
-        {
-          label: 'Forecast',
-          data: forecast,
-          backgroundColor: '#f59e0b44',
-          borderColor: '#f59e0b',
-          borderWidth: 1,
-          borderRadius: 3,
-          borderDash: [4, 4],
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => `₹${ctx.parsed.y || 0}` } }
-      },
-      scales: {
-        x: { ticks: { color: textColor, font: { size: 9 }, maxRotation: 45 }, grid: { display: false } },
-        y: { display: false }
-      }
-    }
-  });
 }
 
 // ─────────────────────────────────────────────────────────────
